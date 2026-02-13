@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>まるばつゲーム</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <div class="title">まるばつゲーム</div>
+        <div id="status" class="status" aria-live="polite">X の番</div>
+      </header>
+
+      <div class="modes" role="group" aria-label="対戦モード">
+        <button class="mode-btn active" data-mode="pvp">1 vs 1</button>
+        <button class="mode-btn" data-mode="ai">vs AI</button>
+      </div>
+
+      <div class="play">
+        <section class="board" role="grid" aria-label="三目並べ">
+          <button class="cell" data-index="0" role="gridcell" aria-label="1"></button>
+          <button class="cell" data-index="1" role="gridcell" aria-label="2"></button>
+          <button class="cell" data-index="2" role="gridcell" aria-label="3"></button>
+          <button class="cell" data-index="3" role="gridcell" aria-label="4"></button>
+          <button class="cell" data-index="4" role="gridcell" aria-label="5"></button>
+          <button class="cell" data-index="5" role="gridcell" aria-label="6"></button>
+          <button class="cell" data-index="6" role="gridcell" aria-label="7"></button>
+          <button class="cell" data-index="7" role="gridcell" aria-label="8"></button>
+          <button class="cell" data-index="8" role="gridcell" aria-label="9"></button>
+        </section>
+        <aside class="scoreboard" aria-label="勝利数">
+          <div id="modeLabel" class="score-mode">1 vs 1</div>
+          <div class="score-card">
+            <div class="score-label">X 勝利</div>
+            <div id="xScore" class="score-value">0</div>
+          </div>
+          <div class="score-card">
+            <div class="score-label">O 勝利</div>
+            <div id="oScore" class="score-value">0</div>
+          </div>
+        </aside>
+      </div>
+
+      <footer class="footer">
+        <button id="reset" class="reset">リセット</button>
+        <button id="resetScore" class="reset ghost">勝利数リセット</button>
+      </footer>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
