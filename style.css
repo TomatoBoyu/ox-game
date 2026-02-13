@@ -88,7 +88,7 @@ body::after {
 .modes {
   margin-top: 14px;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
 
@@ -111,6 +111,52 @@ body::after {
   background: rgba(102, 224, 255, 0.16);
   border-color: rgba(102, 224, 255, 0.45);
   box-shadow: 0 0 12px rgba(102, 224, 255, 0.2);
+}
+
+.online {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.online.hidden {
+  display: none;
+}
+
+.online-row {
+  display: grid;
+  grid-template-columns: 70px 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.online-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+}
+
+.online-input {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 8px;
+  outline: none;
+}
+
+.online-input:focus {
+  border-color: rgba(102, 224, 255, 0.45);
+  box-shadow: 0 0 12px rgba(102, 224, 255, 0.18);
+}
+
+.online-status {
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 
 .play {
@@ -282,6 +328,11 @@ body::after {
   transition: border-color 120ms ease, transform 120ms ease;
 }
 
+.reset.small {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+}
+
 .reset:hover {
   border-color: rgba(255, 255, 255, 0.45);
   transform: translateY(-1px);
@@ -300,6 +351,10 @@ body::after {
 
 @media (max-width: 520px) {
   .play {
+    grid-template-columns: 1fr;
+  }
+
+  .online-row {
     grid-template-columns: 1fr;
   }
 

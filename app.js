@@ -6,6 +6,12 @@ const xScoreEl = document.getElementById("xScore");
 const oScoreEl = document.getElementById("oScore");
 const modeLabelEl = document.getElementById("modeLabel");
 const modeButtons = Array.from(document.querySelectorAll(".mode-btn"));
+const onlinePanel = document.getElementById("onlinePanel");
+const serverUrlInput = document.getElementById("serverUrl");
+const roomCodeInput = document.getElementById("roomCode");
+const connectBtn = document.getElementById("connectBtn");
+const disconnectBtn = document.getElementById("disconnectBtn");
+const onlineStatusEl = document.getElementById("onlineStatus");
 
 const WIN_LINES = [
   [0, 1, 2],
@@ -24,12 +30,25 @@ let finished = false;
 const scoreByMode = {
   pvp: { X: 0, O: 0 },
   ai: { X: 0, O: 0 },
+  online: { X: 0, O: 0 },
 };
 const moveHistory = { X: [], O: [] };
 let audioCtx = null;
 let mode = "pvp";
 const human = "X";
 const ai = "O";
+let socket = null;
+let onlineRole = null;
+let onlineRoom = null;
+
+try {
+  const savedUrl = localStorage.getItem("oxServerUrl");
+  const savedRoom = localStorage.getItem("oxRoomCode");
+  if (savedUrl) serverUrlInput.value = savedUrl;
+  if (savedRoom) roomCodeInput.value = savedRoom;
+} catch (error) {
+  // ignore storage errors
+}
 
 function setStatus(message) {
   statusEl.textContent = message;
@@ -39,7 +58,13 @@ function updateScores() {
   const scores = scoreByMode[mode];
   xScoreEl.textContent = String(scores.X);
   oScoreEl.textContent = String(scores.O);
-  modeLabelEl.textContent = mode === "pvp" ? "1 vs 1" : "vs AI";
+  if (mode === "pvp") {
+    modeLabelEl.textContent = "1 vs 1";
+  } else if (mode === "ai") {
+    modeLabelEl.textContent = "vs AI";
+  } else {
+    modeLabelEl.textContent = "ONLINE";
+  }
 }
 
 function playClickSound() {
@@ -89,6 +114,14 @@ function playWinSound(winner) {
   gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.32);
 }
 
+function setOnlineStatus(text) {
+  onlineStatusEl.textContent = text;
+}
+
+function showOnlinePanel(show) {
+  onlinePanel.classList.toggle("hidden", !show);
+}
+
 function render() {
   cells.forEach((cell, index) => {
     const value = board[index];
@@ -120,11 +153,65 @@ function isDraw() {
   return board.every((cell) => cell !== null);
 }
 
+function clearWinMarks() {
+  cells.forEach((cell) => cell.classList.remove("win"));
+}
+
+function applyServerState(state) {
+  const wasFinished = finished;
+  board = state.board.slice();
+  current = state.current;
+  finished = state.finished;
+  moveHistory.X = [...state.moveHistory.X];
+  moveHistory.O = [...state.moveHistory.O];
+
+  clearWinMarks();
+  if (state.winLine) {
+    state.winLine.forEach((i) => cells[i].classList.add("win"));
+  }
+
+  render();
+
+  if (finished) {
+    if (state.winner) {
+      setStatus(`${state.winner} の勝ち`);
+    } else {
+      setStatus("引き分け");
+    }
+  } else {
+    setStatus(`${current} の番`);
+  }
+
+  if (!wasFinished && finished) {
+    if (state.winner) {
+      scoreByMode[mode][state.winner] += 1;
+      updateScores();
+      playWinSound(state.winner);
+    } else {
+      playClickSound();
+    }
+    return;
+  }
+
+  if (state.lastMove !== null && !finished) {
+    playClickSound();
+  }
+}
+
 function handleClick(event) {
   if (finished) return;
   if (mode === "ai" && current === ai) return;
+  if (mode === "online") {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    if (onlineRole !== current) return;
+  }
   const index = Number(event.currentTarget.dataset.index);
   if (board[index] !== null) return;
+
+  if (mode === "online") {
+    socket.send(JSON.stringify({ type: "move", index }));
+    return;
+  }
 
   applyMove(index);
 }
@@ -275,22 +362,118 @@ function simulateMove(state, index) {
   };
 }
 
+function normalizeRoom(value) {
+  return value.trim().toUpperCase();
+}
+
+function connectOnline() {
+  const url = serverUrlInput.value.trim();
+  const room = normalizeRoom(roomCodeInput.value);
+  if (!url || !room) {
+    setOnlineStatus("接続先と合言葉を入力して");
+    return;
+  }
+
+  disconnectOnline();
+  setOnlineStatus("接続中...");
+
+  try {
+    socket = new WebSocket(url);
+  } catch (error) {
+    setOnlineStatus("接続先が不正です");
+    socket = null;
+    return;
+  }
+
+  onlineRoom = room;
+  localStorage.setItem("oxServerUrl", url);
+  localStorage.setItem("oxRoomCode", room);
+
+  socket.addEventListener("open", () => {
+    setOnlineStatus("参加中...");
+    socket.send(JSON.stringify({ type: "join", room }));
+  });
+
+  socket.addEventListener("message", (event) => {
+    let message;
+    try {
+      message = JSON.parse(event.data);
+    } catch (error) {
+      return;
+    }
+
+    if (message.type === "joined") {
+      onlineRole = message.role;
+      const roleLabel =
+        onlineRole === "X"
+          ? "あなた: X"
+          : onlineRole === "O"
+            ? "あなた: O"
+            : "観戦";
+      setOnlineStatus(`接続中 (${roleLabel}) / ルーム ${onlineRoom}`);
+      applyServerState(message.state);
+      return;
+    }
+
+    if (message.type === "state") {
+      applyServerState(message.state);
+      return;
+    }
+
+    if (message.type === "error") {
+      setOnlineStatus(message.message || "エラー");
+    }
+  });
+
+  socket.addEventListener("close", () => {
+    setOnlineStatus("切断されました");
+    socket = null;
+    onlineRole = null;
+    onlineRoom = null;
+  });
+
+  socket.addEventListener("error", () => {
+    setOnlineStatus("接続エラー");
+  });
+}
+
+function disconnectOnline() {
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.close();
+  }
+  socket = null;
+  onlineRole = null;
+  onlineRoom = null;
+  setOnlineStatus("未接続");
+}
+
 function setMode(nextMode) {
+  if (mode === "online" && nextMode !== "online") {
+    disconnectOnline();
+  }
   mode = nextMode;
   modeButtons.forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.mode === mode);
   });
+  showOnlinePanel(mode === "online");
   resetGame();
   updateScores();
+  if (mode === "online" && (!socket || socket.readyState !== WebSocket.OPEN)) {
+    setStatus("接続してね");
+  }
 }
 
 function resetGame() {
+  if (mode === "online" && socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: "reset" }));
+    return;
+  }
   board = Array(9).fill(null);
   current = "X";
   finished = false;
   moveHistory.X = [];
   moveHistory.O = [];
-  cells.forEach((cell) => cell.classList.remove("win"));
+  clearWinMarks();
   render();
   setStatus(`${current} の番`);
 }
@@ -302,9 +485,23 @@ resetScoreBtn.addEventListener("click", () => {
   scoreByMode[mode].O = 0;
   updateScores();
 });
+connectBtn.addEventListener("click", () => {
+  if (mode !== "online") {
+    setMode("online");
+  }
+  connectOnline();
+});
+disconnectBtn.addEventListener("click", disconnectOnline);
+roomCodeInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    connectOnline();
+  }
+});
 modeButtons.forEach((btn) =>
   btn.addEventListener("click", () => setMode(btn.dataset.mode))
 );
 
 render();
 updateScores();
+showOnlinePanel(false);
+setOnlineStatus("未接続");

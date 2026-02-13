@@ -16,6 +16,33 @@
       <div class="modes" role="group" aria-label="対戦モード">
         <button class="mode-btn active" data-mode="pvp">1 vs 1</button>
         <button class="mode-btn" data-mode="ai">vs AI</button>
+        <button class="mode-btn" data-mode="online">ONLINE</button>
+      </div>
+
+      <div id="onlinePanel" class="online hidden" aria-label="オンライン設定">
+        <div class="online-row">
+          <label class="online-label" for="serverUrl">接続先</label>
+          <input
+            id="serverUrl"
+            class="online-input"
+            type="text"
+            placeholder="wss://xxxx.onrender.com"
+            autocomplete="off"
+          />
+        </div>
+        <div class="online-row">
+          <label class="online-label" for="roomCode">合言葉</label>
+          <input
+            id="roomCode"
+            class="online-input"
+            type="text"
+            placeholder="ROOM123"
+            autocomplete="off"
+          />
+          <button id="connectBtn" class="reset small">接続</button>
+          <button id="disconnectBtn" class="reset ghost small">切断</button>
+        </div>
+        <div id="onlineStatus" class="online-status">未接続</div>
       </div>
 
       <div class="play">
