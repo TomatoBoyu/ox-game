@@ -331,6 +331,15 @@ body::after {
   transition: border-color 120ms ease, transform 120ms ease;
 }
 
+.reset.primary {
+  border-color: rgba(102, 224, 255, 0.45);
+  box-shadow: 0 0 12px rgba(102, 224, 255, 0.2);
+}
+
+.reset.hidden {
+  display: none;
+}
+
 .reset.small {
   padding: 8px 12px;
   font-size: 0.85rem;

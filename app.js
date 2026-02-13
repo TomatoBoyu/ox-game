@@ -2,6 +2,7 @@ const cells = Array.from(document.querySelectorAll(".cell"));
 const statusEl = document.getElementById("status");
 const resetBtn = document.getElementById("reset");
 const resetScoreBtn = document.getElementById("resetScore");
+const nextMatchBtn = document.getElementById("nextMatch");
 const xScoreEl = document.getElementById("xScore");
 const oScoreEl = document.getElementById("oScore");
 const modeLabelEl = document.getElementById("modeLabel");
@@ -126,6 +127,10 @@ function showOnlinePanel(show) {
   onlinePanel.classList.toggle("hidden", !show);
 }
 
+function showNextMatch(show) {
+  nextMatchBtn.classList.toggle("hidden", !show);
+}
+
 function render() {
   cells.forEach((cell, index) => {
     const value = board[index];
@@ -194,6 +199,7 @@ function applyServerState(state) {
     } else {
       playClickSound();
     }
+    showNextMatch(false);
     return;
   }
 
@@ -238,10 +244,16 @@ function applyMove(index) {
     scoreByMode[mode][result.winner] += 1;
     updateScores();
     playWinSound(result.winner);
+    if (mode !== "online") {
+      showNextMatch(true);
+    }
   } else if (isDraw()) {
     finished = true;
     setStatus("引き分け");
     playClickSound();
+    if (mode !== "online") {
+      showNextMatch(true);
+    }
   } else {
     current = current === "X" ? "O" : "X";
     setStatus(`${current} の番`);
@@ -366,6 +378,17 @@ function simulateMove(state, index) {
   };
 }
 
+function startNextMatch() {
+  if (mode === "online") return;
+  const next = Math.random() < 0.5 ? "X" : "O";
+  current = next;
+  resetGame(true);
+  setStatus(`${current} の番`);
+  if (mode === "ai" && current === ai) {
+    setTimeout(aiMove, 420);
+  }
+}
+
 function normalizeRoom(value) {
   return value.trim().toUpperCase();
 }
@@ -461,26 +484,30 @@ function setMode(nextMode) {
     btn.classList.toggle("active", btn.dataset.mode === mode);
   });
   showOnlinePanel(mode === "online");
-  resetGame();
+  resetGame(true);
   updateScores();
   if (mode === "online" && (!socket || socket.readyState !== WebSocket.OPEN)) {
     setStatus("接続してね");
   }
+  showNextMatch(false);
 }
 
-function resetGame() {
+function resetGame(preserveTurn = false) {
   if (mode === "online" && socket && socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ type: "reset" }));
     return;
   }
   board = Array(9).fill(null);
-  current = "X";
+  if (!preserveTurn) {
+    current = "X";
+  }
   finished = false;
   moveHistory.X = [];
   moveHistory.O = [];
   clearWinMarks();
   render();
   setStatus(`${current} の番`);
+  showNextMatch(false);
 }
 
 cells.forEach((cell) => cell.addEventListener("click", handleClick));
@@ -490,6 +517,7 @@ resetScoreBtn.addEventListener("click", () => {
   scoreByMode[mode].O = 0;
   updateScores();
 });
+nextMatchBtn.addEventListener("click", startNextMatch);
 connectBtn.addEventListener("click", () => {
   if (mode !== "online") {
     setMode("online");
@@ -510,3 +538,4 @@ render();
 updateScores();
 showOnlinePanel(false);
 setOnlineStatus("未接続");
+showNextMatch(false);
