@@ -123,6 +123,12 @@ body::after {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.online-note {
+  color: var(--muted);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+}
+
 .online.hidden {
   display: none;
 }

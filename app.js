@@ -46,7 +46,9 @@ const DEFAULT_SERVER_URL = "wss://ox-game-easg.onrender.com";
 try {
   const savedUrl = localStorage.getItem("oxServerUrl");
   const savedRoom = localStorage.getItem("oxRoomCode");
-  serverUrlInput.value = savedUrl || DEFAULT_SERVER_URL;
+  if (serverUrlInput) {
+    serverUrlInput.value = savedUrl || DEFAULT_SERVER_URL;
+  }
   if (savedRoom) roomCodeInput.value = savedRoom;
 } catch (error) {
   // ignore storage errors
@@ -369,7 +371,8 @@ function normalizeRoom(value) {
 }
 
 function connectOnline() {
-  const url = serverUrlInput.value.trim() || DEFAULT_SERVER_URL;
+  const url =
+    (serverUrlInput ? serverUrlInput.value.trim() : "") || DEFAULT_SERVER_URL;
   const room = normalizeRoom(roomCodeInput.value);
   if (!url || !room) {
     setOnlineStatus("接続先と合言葉を入力して");
